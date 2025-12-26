@@ -5,8 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>AutoLedger Pro — Car Management Portal</title>
 
-  <!-- ✅ Load Chart.js ONCE globally -->
+  <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <!-- ✅ Local backend (NO Google Script) -->
+  <script src="./storage.js"></script>
 
   <style>
     :root{
@@ -30,7 +33,6 @@
       color:#111827;
     }
 
-    /* ====== Subtle background blobs ====== */
     .bg-blobs{
       position:fixed;
       inset:0;
@@ -54,7 +56,7 @@
       50%{ transform: translate3d(0,18px,0) scale(1.03); }
     }
 
-    /* ====== Sidebar ====== */
+    /* Sidebar */
     .sidebar{
       position:fixed;
       left:0;
@@ -121,13 +123,8 @@
       margin-top:3px;
     }
 
-    .nav{
-      display:flex;
-      flex-direction:column;
-      gap:8px;
-    }
+    .nav{ display:flex; flex-direction:column; gap:8px; }
 
-    /* ✅ Sidebar button size fixed */
     .nav-btn{
       width:100%;
       display:flex;
@@ -147,7 +144,6 @@
       position:relative;
       overflow:hidden;
     }
-
     .nav-btn:after{
       content:"";
       position:absolute;
@@ -156,7 +152,6 @@
       transform: translateX(-110%);
       transition: transform .25s ease;
     }
-
     .nav-btn:hover{
       background: rgba(255,255,255,0.12);
       transform: translateX(3px);
@@ -203,14 +198,13 @@
       font-weight:800;
     }
 
-    /* ====== Main ====== */
+    /* Main */
     .main{
       margin-left:260px;
       padding:22px;
       min-height:100vh;
     }
 
-    /* Top bar */
     .topbar{
       max-width:1240px;
       margin:0 auto 14px;
@@ -233,10 +227,7 @@
       box-shadow: 0 0 0 4px rgba(16,185,129,.12);
     }
 
-    .topbar .actions{
-      display:flex;
-      gap:10px;
-    }
+    .topbar .actions{ display:flex; gap:10px; }
     .pill{
       border:1px solid var(--line);
       background:#fff;
@@ -251,7 +242,6 @@
     }
     .pill:hover{ transform: translateY(-1px); box-shadow: var(--shadow); }
 
-    /* Loaded content styling */
     #content{
       display:flex;
       flex-direction:column;
@@ -273,7 +263,6 @@
       to{ transform: translateY(0); opacity:1; }
     }
 
-    /* shimmer line top */
     #content:before{
       content:"";
       position:absolute;
@@ -289,7 +278,7 @@
       100%{ transform: translateX(1320px); }
     }
 
-    /* ✅ Restored dropdown/input styling (original) */
+    /* Form base styles */
     #content label{
       font-weight:900;
       margin-bottom:4px;
@@ -323,7 +312,6 @@
     }
     .form-row > div{ flex:1 1 200px; }
 
-    /* Buttons */
     #content button{
       width:100%;
       padding:10px 12px;
@@ -341,11 +329,8 @@
       transform: translateY(-1px);
       box-shadow: 0 14px 26px rgba(39,37,95,.26);
     }
-    #content button:active{
-      transform: translateY(0px) scale(.99);
-    }
+    #content button:active{ transform: translateY(0px) scale(.99); }
 
-    /* Responsive sidebar */
     @media(max-width:980px){
       .main{ margin-left:0; padding:12px; }
       .sidebar{
@@ -363,50 +348,7 @@
       .sidebar .footer{ flex: 1 1 100%; }
     }
 
-    /* =========================
-       INTRO OVERLAY (GIF) - first time only
-    ========================= */
-    .intro-overlay{
-      position:fixed;
-      inset:0;
-      z-index:9999;
-      background: radial-gradient(900px 600px at 50% 25%, rgba(255,255,255,.06), transparent 60%),
-                  linear-gradient(180deg, #050814, #0f172a);
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      opacity:1;
-      pointer-events:auto;
-      transition: opacity .25s ease;
-    }
-    .intro-overlay.hidden{ opacity:0; pointer-events:none; }
-
-    .intro-gif-box{
-      display:flex;
-      flex-direction:column;
-      align-items:center;
-      gap:12px;
-    }
-    .intro-gif{
-      width:min(720px, 92vw);
-      max-height:80vh;
-      height:auto;
-      border-radius:16px;
-      box-shadow: 0 20px 60px rgba(0,0,0,.45);
-      border:1px solid rgba(255,255,255,.12);
-      background: rgba(255,255,255,.04);
-    }
-    .intro-caption{
-      color:rgba(255,255,255,.88);
-      font-weight:900;
-      letter-spacing:.3px;
-      text-shadow: 0 10px 22px rgba(0,0,0,.45);
-    }
-
-    /* =========================
-       LOADER OVERLAY (every loading)
-       blur background + loading card
-    ========================= */
+    /* Loader overlay */
     .loader-overlay{
       position:fixed;
       inset:0;
@@ -421,10 +363,7 @@
       pointer-events:auto;
       transition: opacity .2s ease;
     }
-    .loader-overlay.hidden{
-      opacity:0;
-      pointer-events:none;
-    }
+    .loader-overlay.hidden{ opacity:0; pointer-events:none; }
 
     .loader-card{
       background: rgba(255,255,255,.85);
@@ -437,19 +376,9 @@
       align-items:center;
       gap:10px;
     }
-    .loader-title{
-      font-weight:900;
-      color:#111827;
-      opacity:.85;
-    }
-    .loader-sub{
-      font-size:12px;
-      color:#6b7280;
-      font-weight:800;
-      margin-top:-6px;
-    }
+    .loader-title{ font-weight:900; color:#111827; opacity:.85; }
+    .loader-sub{ font-size:12px; color:#6b7280; font-weight:800; margin-top:-6px; }
 
-    /* tiny bounce */
     .loader-icon{
       width:80px;height:80px;
       border-radius:18px;
@@ -538,15 +467,6 @@
     <div id="content">Loading...</div>
   </div>
 
-  <!-- ✅ INTRO OVERLAY (GIF: first time only) -->
-  <div id="introOverlay" class="intro-overlay hidden" aria-label="Intro">
-    <div class="intro-gif-box">
-      <img id="introGif" class="intro-gif" alt="Intro GIF" src="">
-      <div class="intro-caption">Starting AutoLedger Pro...</div>
-    </div>
-  </div>
-
-  <!-- ✅ LOADER OVERLAY (Every loading) -->
   <div id="loaderOverlay" class="loader-overlay hidden" aria-label="Loading">
     <div class="loader-card">
       <div class="loader-icon">🚗</div>
@@ -556,13 +476,8 @@
   </div>
 
   <script>
-    // ✅ Your Drive GIF (direct link)
-    const INTRO_GIF_URL = "https://drive.google.com/uc?export=download&id=14PD-NgftTcfCO6iaYuL3zyYTkrdZ35O0";
-
     let CURRENT_PAGE = "";
 
-    const introOverlay = () => document.getElementById("introOverlay");
-    const introGif = () => document.getElementById("introGif");
     const loaderOverlay = () => document.getElementById("loaderOverlay");
     const loaderText = () => document.getElementById("loaderText");
 
@@ -572,57 +487,10 @@
       if(loaderText()) loaderText().textContent = text || "Loading...";
       o.classList.remove("hidden");
     }
-
     function hideLoader(){
       const o = loaderOverlay();
       if(!o) return;
       o.classList.add("hidden");
-    }
-
-    function preloadImage(url){
-      return new Promise((resolve)=>{
-        const img = new Image();
-        img.onload = () => resolve(true);
-        img.onerror = () => resolve(false);
-        img.src = url;
-      });
-    }
-
-    /**
-     * ✅ GIF intro (first time only)
-     * GIF has no "ended" event, so we show for a fixed duration.
-     * You can change INTRO_DURATION_MS if needed.
-     */
-    function runIntroOnce(){
-      return new Promise(async (resolve)=>{
-        if(sessionStorage.getItem("ALP_INTRO_DONE")){
-          resolve(false);
-          return;
-        }
-        sessionStorage.setItem("ALP_INTRO_DONE","1");
-
-        const o = introOverlay();
-        const g = introGif();
-        if(!o || !g){
-          resolve(false);
-          return;
-        }
-
-        // force restart GIF by cache-busting
-        const cacheBust = Date.now();
-        g.src = INTRO_GIF_URL + "&cb=" + cacheBust;
-
-        // try preload (best effort)
-        await preloadImage(g.src);
-
-        o.classList.remove("hidden");
-
-        const INTRO_DURATION_MS = 7000; // ✅ 7 seconds
-        setTimeout(()=>{
-          o.classList.add("hidden");
-          resolve(true);
-        }, INTRO_DURATION_MS);
-      });
     }
 
     function setActiveNav(page){
@@ -640,11 +508,14 @@
         msg +'</div>';
     }
 
+    // Inject HTML + run scripts inside it
     function setContentAndRunScripts(container, html){
+      // remove old injected scripts
       document.querySelectorAll('script[data-page-script="1"]').forEach(s => s.remove());
 
       container.innerHTML = html;
 
+      // move scripts to head so they execute
       const scripts = Array.from(container.querySelectorAll("script"));
       scripts.forEach(oldScript => {
         const newScript = document.createElement("script");
@@ -664,56 +535,47 @@
       });
     }
 
+    // ✅ GitHub loader (NO google.script.run)
     function loadPage(page){
       CURRENT_PAGE = page;
       setActiveNav(page);
-
       showLoader("Loading: " + page + "...");
 
       const content = document.getElementById('content');
       content.innerHTML =
-        '<div style="font-weight:900;color:#111827;">Loading: '+ page +'</div>'+
-        '<div style="color:#6b7280;margin-top:6px;">If it stays here, server is not returning content.</div>';
+        '<div style="font-weight:900;color:#111827;">Loading: '+ page +'</div>';
 
-      try{
-        if(!window.google || !google.script || !google.script.run){
-          showLoadError("google.script.run not available. Please open the Web App URL (not HTML preview).");
-          hideLoader();
-          return;
-        }
-      }catch(e){
-        showLoadError("JS error before calling server: " + (e && e.message ? e.message : e));
-        hideLoader();
-        return;
-      }
+      const url = `./pages/${page}.html?v=${Date.now()}`;
 
       const timer = setTimeout(()=>{
-        showLoadError("Timeout while loading '"+ page +"'. Check includePage() + Apps Script Executions log.");
+        showLoadError("Timeout while loading '"+ page +"'. Missing file: " + url);
         hideLoader();
       }, 15000);
 
-      const v = (new URLSearchParams(location.search).get("v")) || "";
-
-      google.script.run
-        .withSuccessHandler(html=>{
+      fetch(url)
+        .then(r=>{
+          if(!r.ok) throw new Error("HTTP " + r.status + " while loading " + url);
+          return r.text();
+        })
+        .then(html=>{
           clearTimeout(timer);
 
           if(!html || String(html).trim()===""){
-            showLoadError("Page '"+ page +"' returned EMPTY HTML. Check file name '"+ page +".html'.");
+            showLoadError("Page '"+ page +"' returned EMPTY HTML. File: " + url);
             hideLoader();
             return;
           }
 
           setContentAndRunScripts(content, html);
 
+          // call init if exists (DashboardInit, AddCarInit, etc.)
           const initName = page + "Init";
           const initFn = window[initName];
 
           if(typeof initFn === 'function'){
-            try{
-              initFn();
-            }catch(e){
-              showLoadError("Init crashed ("+initName+"): " + (e && e.message ? e.message : e));
+            try{ initFn(); }
+            catch(e){
+              showLoadError("Init crashed ("+initName+"): " + (e?.message || e));
               hideLoader();
               return;
             }
@@ -722,22 +584,15 @@
           hideLoader();
           window.scrollTo({top:0, behavior:'smooth'});
         })
-        .withFailureHandler(err=>{
+        .catch(err=>{
           clearTimeout(timer);
-          showLoadError("Error loading '"+ page +"': " + (err && err.message ? err.message : err));
+          showLoadError("Error loading '"+ page +"': " + (err?.message || err));
           hideLoader();
-        })
-        .includePage(page + (v ? ("?v="+encodeURIComponent(v)) : ""));
+        });
     }
 
-    // ✅ STARTUP: play GIF intro (first time), then open portal
-    (async function boot(){
-      await runIntroOnce();
-      loadPage('Dashboard');
-    })();
-
-    // ✅ For testing intro again:
-    // sessionStorage.removeItem("ALP_INTRO_DONE"); location.reload();
+    // Boot
+    loadPage('Dashboard');
   </script>
 </body>
 </html>
