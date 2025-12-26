@@ -1,1 +1,876 @@
+<!-- Dashboard.html (GitHub Local Version) -->
+<div>
+  <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
+    <h2 style="margin:0;">📊 Dashboard</h2>
+    <div style="color:#6b7280;font-weight:900;">AutoLedger Pro</div>
+  </div>
+
+  <div class="glass-card" style="margin-top:12px;">
+    <div class="form-row" style="align-items:end;">
+      <div>
+        <label>Car</label>
+        <select id="dashCar">
+          <option value="">All Cars</option>
+        </select>
+      </div>
+
+      <div>
+        <label>Status</label>
+        <select id="dashStatus">
+          <option value="">All</option>
+          <option value="Sold">Sold</option>
+          <option value="Available">Available</option>
+        </select>
+      </div>
+
+      <div>
+        <label>Start Date</label>
+        <input id="dashStart" type="date">
+      </div>
+
+      <div>
+        <label>End Date</label>
+        <input id="dashEnd" type="date">
+      </div>
+
+      <div>
+        <label>Forecast (Months)</label>
+        <select id="dashHorizon">
+          <option value="3" selected>3</option>
+          <option value="6">6</option>
+          <option value="12">12</option>
+        </select>
+      </div>
+
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button onclick="loadDashboard()" style="width:auto;">Run</button>
+        <button onclick="dashAllTime()" style="width:auto;background:#111827;">All Time</button>
+        <button onclick="downloadDashboardPdf()" style="width:auto;background:#0f766e;">Download PDF</button>
+      </div>
+    </div>
+
+    <div id="dashMsg" style="margin-top:10px;color:#6b7280;font-weight:900;"></div>
+  </div>
+
+  <div class="kpi-grid" style="margin-top:14px;">
+    <div class="kpi" onclick="kpiDetails('counts')">
+      <div class="kpi-top"><span class="kpi-ic">🚗</span><span class="kpi-name">Cars</span></div>
+      <div class="kpi-val" id="kpiCounts">0 | 0 | 0</div>
+      <div class="kpi-sub">Total | Sold | Available</div>
+    </div>
+
+    <div class="kpi" onclick="kpiDetails('expenses')">
+      <div class="kpi-top"><span class="kpi-ic">💸</span><span class="kpi-name">Total Expenses</span></div>
+      <div class="kpi-val" id="kpiExpenses">0</div>
+      <div class="kpi-sub">Click for breakdown</div>
+    </div>
+
+    <div class="kpi" onclick="kpiDetails('profit')">
+      <div class="kpi-top"><span class="kpi-ic">📈</span><span class="kpi-name">Net Profit (Sold Cars)</span></div>
+      <div class="kpi-val" id="kpiProfit">0</div>
+      <div class="kpi-sub">Sale − Purchase − Expenses</div>
+    </div>
+
+    <div class="kpi" onclick="kpiDetails('avg')">
+      <div class="kpi-top"><span class="kpi-ic">🧾</span><span class="kpi-name">Avg Monthly Income</span></div>
+      <div class="kpi-val" id="kpiAvg">0</div>
+      <div class="kpi-sub">Based on trend months</div>
+    </div>
+
+    <div class="kpi kpi-disabled" title="No action">
+      <div class="kpi-top"><span class="kpi-ic">💳</span><span class="kpi-name">Installment Received</span></div>
+      <div class="kpi-val" id="kpiReceived">0</div>
+      <div class="kpi-sub">Down + payments</div>
+    </div>
+
+    <div class="kpi kpi-disabled" title="No action">
+      <div class="kpi-top"><span class="kpi-ic">⏳</span><span class="kpi-name">Receivable Balance</span></div>
+      <div class="kpi-val" id="kpiBalance">0</div>
+      <div class="kpi-sub">Pending</div>
+    </div>
+  </div>
+
+  <div id="detailPanel" class="panel" style="display:none;">
+    <div class="panel-head">
+      <div>
+        <div class="panel-title" id="panelTitle">Details</div>
+        <div class="panel-sub" id="panelSub">—</div>
+      </div>
+      <button onclick="closePanel()" style="width:auto;background:#111827;">Close</button>
+    </div>
+    <div class="panel-body" id="panelBody">Loading...</div>
+  </div>
+
+  <div class="glass-card" style="margin-top:16px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
+      <div class="chart-title" style="margin:0;">📌 Installment Receivables</div>
+      <div style="color:#6b7280;font-weight:900;">Only cars with pending balance</div>
+    </div>
+    <div id="receivablesTable" style="margin-top:10px;"></div>
+  </div>
+
+  <div class="dash-grid" style="margin-top:16px;">
+    <div>
+      <div class="glass-card">
+        <div class="chart-title">Summary</div>
+        <div class="chart-wrap"><canvas id="barChart"></canvas></div>
+      </div>
+
+      <div class="glass-card" style="margin-top:12px;">
+        <div class="chart-title">Monthly Operating Profit Trend + Forecast</div>
+        <div class="chart-wrap"><canvas id="trendChart"></canvas></div>
+        <div class="hint">Operating Profit = Revenue − Expenses</div>
+      </div>
+
+      <div class="glass-card" style="margin-top:12px;">
+        <div class="chart-title">Monthly Revenue vs Expenses</div>
+        <div class="chart-wrap"><canvas id="revExpChart"></canvas></div>
+      </div>
+    </div>
+
+    <div>
+      <div class="glass-card" style="margin-bottom:12px;">
+        <div class="chart-title">Sold vs Available</div>
+        <div class="chart-wrap"><canvas id="pieChart"></canvas></div>
+      </div>
+
+      <div class="glass-card">
+        <div class="chart-title">Expense Categories</div>
+        <div class="chart-wrap"><canvas id="donutChart"></canvas></div>
+      </div>
+
+      <div class="glass-card" style="margin-top:12px;">
+        <div class="chart-title">Expenses Paid By</div>
+        <div class="chart-wrap"><canvas id="paidByChart"></canvas></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="glass-card" style="margin-top:16px;">
+    <div class="chart-title">Month-wise Trend (Till Date)</div>
+    <div id="trendTable"></div>
+  </div>
+
+  <div class="glass-card" style="margin-top:16px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
+      <div class="chart-title" style="margin:0;">DEBUG</div>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <button onclick="toggleDebug()" style="width:auto;background:#111827;">Show/Hide</button>
+        <button onclick="copyDebug()" style="width:auto;background:#0f766e;">Copy</button>
+      </div>
+    </div>
+    <pre id="dbg" style="margin:10px 0 0;white-space:pre-wrap;display:none;"></pre>
+  </div>
+</div>
+
+<!-- PAYMENT MODAL -->
+<div id="payModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9999;">
+  <div style="max-width:720px;margin:50px auto;background:#fff;border-radius:14px;overflow:hidden;box-shadow:0 20px 50px rgba(0,0,0,.25);">
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:#27255f;color:#fff;">
+      <strong id="payModalTitle">Record Installment Payment</strong>
+      <button onclick="closePayModal()" style="width:auto;background:#111827;">Close</button>
+    </div>
+
+    <div style="padding:14px;">
+      <div id="payModalInfo" style="color:#374151;font-weight:900;margin-bottom:10px;"></div>
+
+      <div class="form-row">
+        <div>
+          <label>Payment Date</label>
+          <input id="payDate" type="date">
+        </div>
+        <div>
+          <label>Amount</label>
+          <input id="payAmount" type="number" min="1" step="1" placeholder="Enter amount">
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div>
+          <label>Method</label>
+          <select id="payMethod">
+            <option>Cash</option>
+            <option>Bank</option>
+            <option>Online</option>
+            <option>Cheque</option>
+            <option>Other</option>
+          </select>
+        </div>
+        <div>
+          <label>Notes (optional)</label>
+          <input id="payNotes" placeholder="Notes">
+        </div>
+      </div>
+
+      <div style="display:flex;gap:10px;margin-top:12px;">
+        <button onclick="submitInstallmentPayment()" class="primary">Save Payment</button>
+        <button onclick="closePayModal()" style="width:auto;background:#111827;">Cancel</button>
+      </div>
+
+      <div id="payMsg" style="margin-top:10px;color:#6b7280;font-weight:900;"></div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .glass-card{
+    background: linear-gradient(180deg, rgba(255,255,255,0.92), rgba(255,255,255,0.98));
+    border:1px solid rgba(17,24,39,0.06);
+    border-radius:14px;
+    box-shadow: 0 12px 28px rgba(0,0,0,.08);
+    padding:12px;
+  }
+  .chart-title{font-weight:900;margin-bottom:8px;color:#27255f;}
+  .hint{color:#6b7280;font-weight:900;margin-top:6px;font-size:12px;}
+  .chart-wrap{
+    border-radius:12px;
+    border:1px solid rgba(229,231,235,.9);
+    padding:10px;
+    background:#fff;
+  }
+  .chart-wrap canvas{width:100% !important;height:250px !important;}
+
+  .kpi-grid{
+    display:grid;
+    grid-template-columns: repeat(6, minmax(0,1fr));
+    gap:10px;
+  }
+  .kpi{
+    background: linear-gradient(180deg, #ffffff, #fbfbff);
+    border:1px solid rgba(39,37,95,.10);
+    border-radius:12px;
+    box-shadow: 0 8px 16px rgba(0,0,0,.07);
+    padding:10px;
+    cursor:pointer;
+    transition: transform .16s ease, box-shadow .16s ease, border-color .16s ease;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+  }
+  .kpi:hover{ transform: translateY(-2px); box-shadow: 0 14px 26px rgba(0,0,0,.10); border-color: rgba(39,37,95,.18); }
+  .kpi-disabled{ cursor:default; opacity:.92; }
+  .kpi-disabled:hover{ transform:none; box-shadow: 0 8px 16px rgba(0,0,0,.07); border-color: rgba(39,37,95,.10); }
+
+  .kpi-top{display:flex;align-items:center;gap:8px;margin-bottom:6px;}
+  .kpi-ic{
+    width:28px;height:28px;border-radius:10px;
+    display:grid;place-items:center;
+    background: rgba(39,37,95,.08);
+    border:1px solid rgba(39,37,95,.12);
+    font-size:14px;
+  }
+  .kpi-name{font-size:12px;font-weight:800;color:#111827;opacity:.92;}
+  .kpi-val{
+    font-size:18px;font-weight:900;color:#27255f;line-height:1.05;margin-top:2px;
+    font-variant-numeric: tabular-nums;
+  }
+  .kpi-sub{margin-top:6px;color:#6b7280;font-weight:800;font-size:11px;line-height:1.2;}
+
+  .panel{
+    margin-top:14px;
+    border-radius:14px;
+    border:1px solid rgba(17,24,39,0.06);
+    background:#fff;
+    box-shadow: 0 16px 40px rgba(0,0,0,.12);
+    overflow:hidden;
+  }
+  .panel-head{
+    display:flex;justify-content:space-between;align-items:center;gap:10px;
+    padding:10px 12px;
+    background: linear-gradient(90deg, rgba(39,37,95,1), rgba(56,53,122,1));
+    color:#fff;
+  }
+  .panel-title{font-weight:900;font-size:14px;}
+  .panel-sub{font-weight:900;font-size:12px;opacity:.9;}
+  .panel-body{padding:12px;}
+
+  table{width:100%;border-collapse:collapse;font-size:13px;background:#fff;}
+  th,td{border:1px solid #eee;padding:8px;}
+  th{background:#f8fafc;font-weight:900;}
+  td.right{text-align:right;}
+  td.center{text-align:center;}
+  .action-center{display:flex;justify-content:center;align-items:center;}
+
+  .dash-grid{display:grid;grid-template-columns:1fr 420px;gap:18px;align-items:start;}
+
+  @media(max-width:1200px){
+    .kpi-grid{grid-template-columns: repeat(3, minmax(0,1fr));}
+  }
+  @media(max-width:900px){
+    .dash-grid{grid-template-columns:1fr;}
+    .kpi-grid{grid-template-columns: repeat(2, minmax(0,1fr));}
+    .chart-wrap canvas{height:240px !important;}
+  }
+</style>
+
+<script>
+let barChart, pieChart, donutChart, trendChart, revExpChart, paidByChart;
+let _PAY_CTX = null;
+let _RES = null;
+
+function toM(v){
+  const n = Number(v||0);
+  const m = n/1000000;
+  return (Math.round(m*100)/100).toFixed(2) + "M";
+}
+
+const ValueLabelPlugin = {
+  id: 'valueLabel',
+  afterDatasetsDraw(chart, args, opts){
+    const o = opts || {};
+    if(o.enabled !== true) return;
+
+    const isCount = o.mode === "count";
+    const ctx = chart.ctx;
+    ctx.save();
+    ctx.font = '400 11px Arial';
+    ctx.fillStyle = '#111827';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'bottom';
+
+    chart.data.datasets.forEach((ds, di)=>{
+      const meta = chart.getDatasetMeta(di);
+      if(!meta || meta.hidden) return;
+
+      meta.data.forEach((el, i)=>{
+        const raw = ds.data[i];
+        if(raw === null || raw === undefined) return;
+
+        const v = Number(raw||0);
+        if(!isCount && Math.abs(v) < 0.000001) return;
+
+        const p = el.tooltipPosition ? el.tooltipPosition() : null;
+        if(!p) return;
+
+        const label = isCount ? String(v) : toM(v);
+        const y = p.y - 6;
+
+        ctx.strokeStyle = 'rgba(255,255,255,.95)';
+        ctx.lineWidth = 3;
+        ctx.strokeText(label, p.x, y);
+        ctx.fillText(label, p.x, y);
+      });
+    });
+
+    ctx.restore();
+  }
+};
+
+async function DashboardInit(){
+  if(typeof Chart !== "undefined"){
+    try{ Chart.register(ValueLabelPlugin); }catch(e){}
+  }
+
+  dashMsg.innerText = "Loading cars...";
+  const list = await window.ALP.api.getCarList();
+
+  const sel = document.getElementById("dashCar");
+  sel.innerHTML = `<option value="">All Cars</option>`;
+  (list||[]).forEach(c=>{
+    sel.innerHTML += `<option value="${escapeHtml(c.CarID)}">${escapeHtml(c.CarName)} - ${escapeHtml(c.RegistrationNo||"")}</option>`;
+  });
+
+  dashMsg.innerText = "Cars loaded ✅";
+  loadDashboard();
+}
+
+function dashAllTime(){
+  dashStart.value = "";
+  dashEnd.value = "";
+  loadDashboard();
+}
+
+function getDashFilter(){
+  return {
+    carId: dashCar.value || "",
+    status: dashStatus.value || "",
+    startDate: dashStart.value || "",
+    endDate: dashEnd.value || "",
+    horizonMonths: Number(dashHorizon.value || 3),
+    lookbackMonths: 12
+  };
+}
+
+async function loadDashboard(){
+  dashMsg.innerText = "Loading dashboard data...";
+  closePanel();
+  const filter = getDashFilter();
+
+  try{
+    const res = await window.ALP.api.getDashboardData(filter);
+    _RES = res;
+    showDebug(res);
+
+    if(!res || res.ok !== true){
+      dashMsg.innerText = "Dashboard error: " + (res?.message || "No response");
+      resetUI();
+      return;
+    }
+
+    const s = res.summary || {};
+
+    kpiCounts.innerText = `${Number(s.totalCars||0)} | ${Number(s.soldCars||0)} | ${Number(s.availableCars||0)}`;
+    kpiExpenses.innerText = toM(s.totalExpenses||0);
+    kpiProfit.innerText   = toM(s.totalProfit||0);
+    kpiAvg.innerText      = toM(s.avgMonthlyIncome||0);
+    kpiReceived.innerText = toM(s.totalInstallmentReceived||0);
+    kpiBalance.innerText  = toM(s.totalReceivable||0);
+
+    renderReceivables(res.receivables || []);
+    buildCharts(res);
+    buildTrendTable(res.trend);
+
+    dashMsg.innerText = "Loaded ✅";
+  }catch(e){
+    dashMsg.innerText = "FAILED: " + (e?.message || e);
+    resetUI();
+  }
+}
+
+function kpiDetails(type){
+  if(!_RES || _RES.ok !== true) return;
+
+  const s = _RES.summary || {};
+  const breakdown = _RES.breakdown || {};
+  const trend = _RES.trend || {};
+  const periodRows = Array.isArray(trend.periodRows) ? trend.periodRows : [];
+
+  detailPanel.style.display = "block";
+  panelBody.innerHTML = "Loading...";
+
+  if(type === "counts"){
+    panelTitle.innerText = "Cars Details";
+    panelSub.innerText = `Total ${s.totalCars||0} • Sold ${s.soldCars||0} • Available ${s.availableCars||0}`;
+    panelBody.innerHTML = `
+      <table>
+        <thead><tr><th>Metric</th><th class="right">Value</th></tr></thead>
+        <tbody>
+          <tr><td>Total Cars</td><td class="right">${Number(s.totalCars||0)}</td></tr>
+          <tr><td>Sold Cars</td><td class="right">${Number(s.soldCars||0)}</td></tr>
+          <tr><td>Available Cars</td><td class="right">${Number(s.availableCars||0)}</td></tr>
+        </tbody>
+      </table>
+    `;
+    return;
+  }
+
+  if(type === "expenses"){
+    panelTitle.innerText = "Expense Details";
+    panelSub.innerText = `Total Expenses: ${toM(s.totalExpenses||0)}`;
+    const byCat = breakdown.expenseByCategory || {};
+    const byPaid = breakdown.expenseByPaidBy || {};
+    panelBody.innerHTML = `
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div>
+          <div style="font-weight:900;color:#27255f;margin:0 0 6px;">By Category</div>
+          ${makeKeyValTable(byCat, "Category")}
+        </div>
+        <div>
+          <div style="font-weight:900;color:#27255f;margin:0 0 6px;">Paid By</div>
+          ${makeKeyValTable(byPaid, "Paid By")}
+        </div>
+      </div>
+    `;
+    return;
+  }
+
+  if(type === "profit"){
+    panelTitle.innerText = "Net Profit Details";
+    panelSub.innerText = `Net Profit: ${toM(s.totalProfit||0)}`;
+    panelBody.innerHTML = `${makeMonthWiseProfit(periodRows)}`;
+    return;
+  }
+
+  if(type === "avg"){
+    panelTitle.innerText = "Avg Monthly Income";
+    panelSub.innerText = `Avg: ${toM(s.avgMonthlyIncome||0)}`;
+    panelBody.innerHTML = `${makeMonthWiseProfit(periodRows)}`;
+    return;
+  }
+
+  panelTitle.innerText = "Details";
+  panelSub.innerText = "—";
+  panelBody.innerHTML = `<div style="color:#6b7280;font-weight:900;">No details</div>`;
+}
+
+function closePanel(){ detailPanel.style.display = "none"; }
+
+function renderReceivables(rows){
+  if(!rows || !rows.length){
+    receivablesTable.innerHTML = `<div style="color:#6b7280;font-weight:900;">No receivables ✅</div>`;
+    return;
+  }
+
+  receivablesTable.innerHTML = `
+    <table>
+      <thead>
+        <tr>
+          <th>Car</th>
+          <th>Reg#</th>
+          <th>Buyer</th>
+          <th class="right">Sale</th>
+          <th class="right">Received</th>
+          <th class="right">Balance</th>
+          <th class="center">Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${rows.map(r=>`
+          <tr>
+            <td>${escapeHtml(r.CarName || r.CarID)}</td>
+            <td>${escapeHtml(r.RegistrationNo || "")}</td>
+            <td>${escapeHtml(r.BuyerName || "")}</td>
+            <td class="right">${toM(r.SalePrice||0)}</td>
+            <td class="right">${toM(r.Received||0)}</td>
+            <td class="right"><b>${toM(r.Balance||0)}</b></td>
+            <td class="center">
+              <div class="action-center">
+                <button style="width:auto;padding:7px 12px;background:#0f766e;color:#fff;border:none;border-radius:8px;"
+                  onclick='openPayModal(${safeJson(r)})'>
+                  Record Payment
+                </button>
+              </div>
+            </td>
+          </tr>
+        `).join("")}
+      </tbody>
+    </table>
+  `;
+}
+
+function openPayModal(row){
+  _PAY_CTX = row;
+  payMsg.innerText = "";
+  payNotes.value = "";
+  payDate.value = new Date().toISOString().slice(0,10);
+
+  const bal = Number(row.Balance||0);
+  payAmount.value = bal ? Math.round(Math.min(bal, bal)) : "";
+
+  payModalInfo.innerHTML = `
+    Car: <b>${escapeHtml(row.CarName || row.CarID)}</b> (${escapeHtml(row.RegistrationNo||"")})
+    <br/>Buyer: <b>${escapeHtml(row.BuyerName||"")}</b>
+    <br/>Balance: <b>${toM(bal)}</b>
+  `;
+
+  payModal.style.display = "block";
+  document.body.style.overflow = "hidden";
+}
+
+function closePayModal(){
+  payModal.style.display = "none";
+  document.body.style.overflow = "auto";
+  _PAY_CTX = null;
+}
+
+async function submitInstallmentPayment(){
+  if(!_PAY_CTX){ alert("No receivable selected."); return; }
+
+  const amt = Number(payAmount.value || 0);
+  const dt = (payDate.value || "").trim();
+
+  if(!dt){ alert("Please select payment date"); return; }
+  if(amt <= 0){ alert("Amount must be > 0"); return; }
+  if(amt > Number(_PAY_CTX.Balance||0) + 0.5){
+    alert("Amount cannot be greater than balance");
+    return;
+  }
+
+  payMsg.innerText = "Saving payment...";
+
+  const payload = {
+    CarID: _PAY_CTX.CarID,
+    PayDate: dt,
+    Amount: amt,
+    Method: (payMethod.value || "").trim(),
+    Notes: (payNotes.value || "").trim(),
+    RefNo: ""
+  };
+
+  const r = await window.ALP.api.addInstallmentPayment(payload);
+  if(!r || r.ok !== true){
+    payMsg.innerText = "Save error: " + (r?.message || "Unknown");
+    return;
+  }
+
+  payMsg.innerText = "Saved ✅";
+  closePayModal();
+  loadDashboard();
+}
+
+function destroyCharts(){
+  try{ if(barChart) barChart.destroy(); }catch(e){}
+  try{ if(pieChart) pieChart.destroy(); }catch(e){}
+  try{ if(donutChart) donutChart.destroy(); }catch(e){}
+  try{ if(trendChart) trendChart.destroy(); }catch(e){}
+  try{ if(revExpChart) revExpChart.destroy(); }catch(e){}
+  try{ if(paidByChart) paidByChart.destroy(); }catch(e){}
+  barChart = pieChart = donutChart = trendChart = revExpChart = paidByChart = null;
+}
+
+function buildCharts(res){
+  if(typeof Chart === "undefined") return;
+
+  destroyCharts();
+
+  const s = res.summary || {};
+  const breakdown = res.breakdown || {};
+  const byCat = breakdown.expenseByCategory || {};
+  const byPaid = breakdown.expenseByPaidBy || {};
+  const trend = res.trend || {};
+  const periodRows = Array.isArray(trend.periodRows) ? trend.periodRows : [];
+  const forecastRows = Array.isArray(trend.forecastRows) ? trend.forecastRows : [];
+
+  const ctxBar = document.getElementById('barChart').getContext('2d');
+  barChart = new Chart(ctxBar,{
+    type:'bar',
+    data:{
+      labels:['Expenses','Net Profit','Avg Income','Inst. Received','Receivable'],
+      datasets:[{
+        label:'Amount',
+        data:[
+          Number(s.totalExpenses||0),
+          Number(s.totalProfit||0),
+          Number(s.avgMonthlyIncome||0),
+          Number(s.totalInstallmentReceived||0),
+          Number(s.totalReceivable||0)
+        ]
+      }]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{
+        legend:{display:false},
+        valueLabel:{ enabled:true },
+        tooltip:{ callbacks:{ label:(c)=> `${toM(c.raw||0)}` } }
+      },
+      scales:{
+        x:{ grid:{display:false} },
+        y:{ beginAtZero:true, ticks:{ callback:(v)=> toM(v).replace(".00","") } }
+      }
+    }
+  });
+
+  const ctxPie = document.getElementById('pieChart').getContext('2d');
+  pieChart = new Chart(ctxPie,{
+    type:'pie',
+    data:{ labels:['Sold','Available'], datasets:[{ data:[
+      Number(s.soldCars||0), Number(s.availableCars||0)
+    ]}] },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{
+        valueLabel:{ enabled:true, mode:"count" },
+        tooltip:{ callbacks:{ label:(c)=> `${c.label}: ${Number(c.raw||0)}` } }
+      }
+    }
+  });
+
+  const catLabels = Object.keys(byCat);
+  const catValues = Object.values(byCat);
+  const ctxDonut = document.getElementById('donutChart').getContext('2d');
+  donutChart = new Chart(ctxDonut,{
+    type:'doughnut',
+    data:{
+      labels: catLabels.length ? catLabels : ['No Expenses'],
+      datasets:[{ data: catLabels.length ? catValues : [1] }]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{
+        legend:{position:'bottom'},
+        tooltip:{ callbacks:{ label:(c)=> `${c.label}: ${toM(c.raw||0)}` } }
+      }
+    }
+  });
+
+  const paidLabels = Object.keys(byPaid);
+  const paidValues = Object.values(byPaid);
+  const ctxPaid = document.getElementById('paidByChart').getContext('2d');
+  paidByChart = new Chart(ctxPaid,{
+    type:'bar',
+    data:{
+      labels: paidLabels.length ? paidLabels : ['No Data'],
+      datasets:[{ label:'Amount', data: paidLabels.length ? paidValues : [0] }]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{
+        legend:{display:false},
+        valueLabel:{ enabled:true },
+        tooltip:{ callbacks:{ label:(c)=> `${toM(c.raw||0)}` } }
+      },
+      scales:{
+        x:{ grid:{display:false} },
+        y:{ beginAtZero:true, ticks:{ callback:(v)=> toM(v).replace(".00","") } }
+      }
+    }
+  });
+
+  const actualLabels = periodRows.map(r=>r.Month);
+  const allLabels = actualLabels.concat(forecastRows.map(r=>r.Month));
+  const actualProfit = periodRows.map(r=>Number(r.Profit||0));
+  const actualPadded = actualProfit.concat(Array(forecastRows.length).fill(null));
+  const forecastProfit = Array(periodRows.length).fill(null).concat(forecastRows.map(r=>Number(r.ForecastProfit||0)));
+
+  const ctxTrend = document.getElementById('trendChart').getContext('2d');
+  trendChart = new Chart(ctxTrend,{
+    type:'line',
+    data:{
+      labels: allLabels,
+      datasets:[
+        { label:'Operating Profit (Rev−Exp)', data: actualPadded, tension:0.25 },
+        { label:'Forecast', data: forecastProfit, tension:0.25 }
+      ]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{
+        legend:{position:'bottom'},
+        valueLabel:{ enabled:true },
+        tooltip:{ callbacks:{ label:(c)=> `${c.dataset.label}: ${toM(c.raw||0)}` } }
+      },
+      scales:{ y:{ ticks:{ callback:(v)=> toM(v).replace(".00","") } } }
+    }
+  });
+
+  const ctxRE = document.getElementById('revExpChart').getContext('2d');
+  revExpChart = new Chart(ctxRE,{
+    type:'line',
+    data:{
+      labels: actualLabels,
+      datasets:[
+        { label:'Revenue', data: periodRows.map(r=>Number(r.Revenue||0)), tension:0.25 },
+        { label:'Expenses', data: periodRows.map(r=>Number(r.Expenses||0)), tension:0.25 }
+      ]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{
+        legend:{position:'bottom'},
+        valueLabel:{ enabled:true },
+        tooltip:{ callbacks:{ label:(c)=> `${c.dataset.label}: ${toM(c.raw||0)}` } }
+      },
+      scales:{ y:{ ticks:{ callback:(v)=> toM(v).replace(".00","") } } }
+    }
+  });
+}
+
+function buildTrendTable(trend){
+  const rows = (trend && Array.isArray(trend.periodRows)) ? trend.periodRows : [];
+  if(!rows.length){
+    trendTable.innerHTML = `<div style="color:#6b7280;font-weight:900;">No trend data</div>`;
+    return;
+  }
+
+  trendTable.innerHTML = `
+    <table>
+      <thead>
+        <tr>
+          <th>Month</th>
+          <th class="right">Revenue</th>
+          <th class="right">Expenses</th>
+          <th class="right">Operating Profit</th>
+          <th class="right">Sales</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${rows.map(r=>`
+          <tr>
+            <td>${escapeHtml(r.Month)}</td>
+            <td class="right">${toM(r.Revenue||0)}</td>
+            <td class="right">${toM(r.Expenses||0)}</td>
+            <td class="right" style="font-weight:900;">${toM(r.Profit||0)}</td>
+            <td class="right">${Number(r.Sales||0)}</td>
+          </tr>
+        `).join("")}
+      </tbody>
+    </table>
+  `;
+}
+
+function makeKeyValTable(obj, keyTitle){
+  const keys = Object.keys(obj||{});
+  if(!keys.length) return `<div style="color:#6b7280;font-weight:900;">No data</div>`;
+  return `
+    <table>
+      <thead><tr><th>${escapeHtml(keyTitle)}</th><th class="right">Amount</th></tr></thead>
+      <tbody>
+        ${keys.sort().map(k=>`<tr><td>${escapeHtml(k)}</td><td class="right">${toM(obj[k]||0)}</td></tr>`).join("")}
+      </tbody>
+    </table>
+  `;
+}
+
+function makeMonthWiseProfit(rows){
+  if(!rows || !rows.length) return `<div style="color:#6b7280;font-weight:900;">No month data</div>`;
+  return `
+    <table>
+      <thead>
+        <tr>
+          <th>Month</th>
+          <th class="right">Revenue</th>
+          <th class="right">Expenses</th>
+          <th class="right">Operating Profit</th>
+          <th class="right">Sales</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${rows.map(r=>`
+          <tr>
+            <td>${escapeHtml(r.Month)}</td>
+            <td class="right">${toM(r.Revenue||0)}</td>
+            <td class="right">${toM(r.Expenses||0)}</td>
+            <td class="right" style="font-weight:900;">${toM(r.Profit||0)}</td>
+            <td class="right">${Number(r.Sales||0)}</td>
+          </tr>
+        `).join("")}
+      </tbody>
+    </table>
+  `;
+}
+
+/* PDF disabled in GitHub local */
+function downloadDashboardPdf(){
+  alert("GitHub Pages version: PDF generation not available (Apps Script feature).");
+}
+
+/* Debug helpers */
+function resetUI(){
+  kpiCounts.innerText = "0 | 0 | 0";
+  kpiExpenses.innerText = "0";
+  kpiProfit.innerText = "0";
+  kpiAvg.innerText = "0";
+  kpiReceived.innerText = "0";
+  kpiBalance.innerText = "0";
+  receivablesTable.innerHTML = "";
+  trendTable.innerHTML = "";
+  closePanel();
+  destroyCharts();
+}
+
+function showDebug(obj){
+  const el = document.getElementById("dbg");
+  el.textContent = JSON.stringify(obj, null, 2);
+}
+function toggleDebug(){
+  const el = document.getElementById("dbg");
+  el.style.display = (el.style.display === "none" ? "block" : "none");
+}
+function copyDebug(){
+  const txt = document.getElementById("dbg").textContent || "";
+  navigator.clipboard.writeText(txt).then(()=>alert("Copied ✅")).catch(()=>alert("Copy failed"));
+}
+function escapeHtml(str){
+  return String(str||'')
+    .replaceAll('&','&amp;')
+    .replaceAll('<','&lt;')
+    .replaceAll('>','&gt;')
+    .replaceAll('"','&quot;')
+    .replaceAll("'","&#039;");
+}
+function safeJson(obj){
+  return JSON.stringify(obj).replace(/</g,"\\u003c").replace(/>/g,"\\u003e").replace(/&/g,"\\u0026");
+}
+
+try { DashboardInit(); } catch(e) {}
+</script>
 
