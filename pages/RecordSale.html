@@ -1,0 +1,221 @@
+<div>
+  <h2>📝 Record Sale</h2>
+
+  <label>Car</label>
+  <select id="saleCar"></select>
+
+  <label>Buyer Name</label>
+  <input id="buyerName" placeholder="Buyer name">
+
+  <label>Buyer Contact</label>
+  <input id="buyerContact" placeholder="Phone / WhatsApp">
+
+  <label>Payment Method</label>
+  <select id="paymentMethod">
+    <option value="">Select</option>
+    <option>Cash</option>
+    <option>Bank</option>
+    <option>Cheque</option>
+    <option>Online</option>
+    <option>Installment</option>
+    <option>Other</option>
+  </select>
+
+  <label>Sale Date</label>
+  <input id="saleDate" type="date">
+
+  <label>Sale Type</label>
+  <select id="saleType" onchange="toggleInstallmentUI()">
+    <option value="Full">Full Payment</option>
+    <option value="Installment">Installment</option>
+  </select>
+
+  <label>Total Sale Amount (Agreed)</label>
+  <input id="saleAmount" type="number" min="0" step="1"
+         placeholder="Total agreed sale price" oninput="calcInstallment()">
+
+  <div id="installmentBox" style="display:none;margin-top:12px;padding:12px;border:1px solid #e5e7eb;border-radius:10px;background:#fff;">
+    <h3 style="margin:0 0 10px 0;color:#27255f;font-size:14px;">Installment Plan</h3>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+      <div>
+        <label>Down Payment (Received)</label>
+        <input id="downPayment" type="number" min="0" step="1"
+               placeholder="Down payment" oninput="calcInstallment()">
+      </div>
+
+      <div>
+        <label>Installment Count (Months)</label>
+        <input id="instCount" type="number" min="1" step="1"
+               placeholder="e.g. 6" oninput="calcInstallment()">
+      </div>
+
+      <div>
+        <label>Monthly Installment (Auto)</label>
+        <input id="instAmount" type="number" min="0" step="1"
+               placeholder="Auto calculated" oninput="calcInstallment(true)">
+      </div>
+
+      <div>
+        <label>Installment Start Date</label>
+        <input id="instStart" type="date">
+      </div>
+    </div>
+
+    <label style="margin-top:10px;">Notes</label>
+    <input id="saleNotes" placeholder="Any remarks (optional)">
+
+    <div style="margin-top:10px;font-weight:900;color:#374151;display:flex;gap:20px;flex-wrap:wrap;">
+      <div>Received: <span id="receivedLbl">0</span></div>
+      <div>Balance: <span id="balanceLbl">0</span></div>
+    </div>
+
+    <div style="margin-top:6px;color:#6b7280;font-weight:800;">
+      Tip: Balance = Total Sale - Down Payment
+    </div>
+  </div>
+
+  <button class="primary" onclick="submitRecordSale()">Record Sale</button>
+</div>
+
+<script>
+function n(v){ v = Number(v||0); return isNaN(v) ? 0 : v; }
+function todayISO(){ return new Date().toISOString().slice(0,10); }
+
+async function RecordSaleInit(){
+  saleDate.value = todayISO();
+  instStart.value = todayISO();
+  saleType.value = "Full";
+  toggleInstallmentUI();
+  await loadAvailableCars();
+}
+
+async function loadAvailableCars(){
+  const sel = document.getElementById('saleCar');
+  sel.innerHTML = '<option value="">Loading cars...</option>';
+
+  const res = await window.ALP.api.getAvailableCarsFromCarList();
+  if(!res || res.ok !== true){
+    sel.innerHTML = '<option value="">Error loading cars</option>';
+    alert("Cars load error");
+    return;
+  }
+
+  const cars = Array.isArray(res.cars) ? res.cars : [];
+  sel.innerHTML = '<option value="">Select Car</option>';
+
+  cars.forEach(c=>{
+    const op = document.createElement('option');
+    op.value = c.CarID;
+    op.text = (c.RegistrationNo ? c.RegistrationNo + ' - ' : '') + (c.CarName || c.Model || c.CarID);
+    sel.appendChild(op);
+  });
+
+  if(cars.length === 0){
+    sel.innerHTML = '<option value="">No Available Cars</option>';
+  }
+}
+
+function toggleInstallmentUI(){
+  const type = document.getElementById('saleType').value;
+  document.getElementById('installmentBox').style.display = (type === "Installment") ? "block" : "none";
+  if(type === "Installment"){
+    if(!paymentMethod.value) paymentMethod.value = "Installment";
+  }
+  calcInstallment();
+}
+
+function calcInstallment(userEditedMonthly=false){
+  const type = document.getElementById('saleType').value;
+
+  if(type !== "Installment"){
+    receivedLbl.innerText = "0";
+    balanceLbl.innerText = "0";
+    return;
+  }
+
+  const salePrice = n(saleAmount.value);
+  const down = n(downPayment.value);
+  let count = Math.floor(n(instCount.value));
+  if(count < 1) count = 1;
+
+  const balance = Math.max(0, salePrice - down);
+
+  if(!userEditedMonthly){
+    const monthly = (count > 0) ? (balance / count) : 0;
+    instAmount.value = monthly ? Math.round(monthly) : "";
+  }
+
+  receivedLbl.innerText = down.toLocaleString();
+  balanceLbl.innerText = balance.toLocaleString();
+}
+
+async function submitRecordSale(){
+  const carId = saleCar.value;
+  const buyer = (buyerName.value || "").trim();
+  const buyerContact = (buyerContact.value || "").trim();
+  const saleDateV = saleDate.value;
+  const salePrice = n(saleAmount.value);
+  const paymentMethodV = (paymentMethod.value || "").trim();
+  const saleTypeV = saleType.value;
+
+  if(!carId){ alert("Please select a car"); return; }
+  if(!saleDateV){ alert("Please select sale date"); return; }
+  if(salePrice <= 0){ alert("Total sale amount must be greater than 0"); return; }
+
+  const downPaymentV = n(downPayment.value);
+  const instCountV   = Math.floor(n(instCount.value));
+  const instAmountV  = n(instAmount.value);
+  const instStartV   = instStart.value || "";
+  const notesV       = (saleNotes.value || "").trim();
+
+  if(saleTypeV === "Installment"){
+    if(downPaymentV < 0){ alert("Down payment cannot be negative"); return; }
+    if(downPaymentV > salePrice){ alert("Down payment cannot be greater than total sale amount"); return; }
+    if(instCountV <= 0){ alert("Installment count must be greater than 0"); return; }
+    if(instAmountV <= 0){ alert("Monthly installment must be greater than 0"); return; }
+    if(!instStartV){ alert("Please select installment start date"); return; }
+  }
+
+  const saleObj = {
+    CarID: carId,
+    BuyerName: buyer,
+    BuyerContact: buyerContact,
+    SaleDate: saleDateV,
+    SalePrice: salePrice,
+    PaymentMethod: paymentMethodV,
+
+    SaleType: saleTypeV,
+    DownPayment: (saleTypeV === "Installment" ? downPaymentV : 0),
+    ReceivedAmount: (saleTypeV === "Installment" ? downPaymentV : salePrice),
+    InstallmentCount: (saleTypeV === "Installment" ? instCountV : 0),
+    InstallmentAmount: (saleTypeV === "Installment" ? instAmountV : 0),
+    InstallmentStartDate: (saleTypeV === "Installment" ? instStartV : ""),
+    Notes: notesV
+  };
+
+  const res = await window.ALP.api.addNewSale(saleObj);
+  if(!res || res.status !== "OK"){
+    alert("Sale failed: " + (res?.message || "Unknown"));
+    return;
+  }
+
+  alert("✅ Sale recorded successfully! SaleID: " + (res.SaleID || ""));
+
+  buyerName.value = "";
+  buyerContact.value = "";
+  paymentMethod.value = "";
+  saleAmount.value = "";
+  downPayment.value = "";
+  instCount.value = "";
+  instAmount.value = "";
+  saleNotes.value = "";
+
+  saleType.value = "Full";
+  toggleInstallmentUI();
+
+  await loadAvailableCars();
+}
+
+try { RecordSaleInit(); } catch(e) {}
+</script>
