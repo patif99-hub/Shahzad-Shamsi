@@ -1,0 +1,38 @@
+<div>
+  <h2>👥 Add Investor</h2>
+
+  <label>Name</label>
+  <input id="invName" placeholder="Investor name">
+
+  <label>Phone</label>
+  <input id="invPhone" placeholder="Phone/WhatsApp">
+
+  <label>Total Investment</label>
+  <input id="invAmount" type="number" placeholder="e.g. 500000">
+
+  <button class="primary" onclick="submitAddInvestor()">Save Investor</button>
+</div>
+
+<script>
+function AddInvestorInit(){}
+
+async function submitAddInvestor(){
+  const name = (document.getElementById('invName').value||'').trim();
+  if(!name){ alert('Name is required'); return; }
+
+  const invObj={
+    Name:name,
+    Phone:(document.getElementById('invPhone').value||'').trim(),
+    TotalInvestment:document.getElementById('invAmount').value
+  };
+
+  const res = await window.ALP.api.addInvestor(invObj);
+  alert(res.message || "Saved ✅");
+
+  invName.value = "";
+  invPhone.value = "";
+  invAmount.value = "";
+}
+
+try{ AddInvestorInit(); }catch(e){}
+</script>
