@@ -1,0 +1,108 @@
+<div>
+  <h2>💲 Add Expense</h2>
+
+  <label>Car</label>
+  <select id="expenseCar"></select>
+
+  <label>Expense Date</label>
+  <input id="expenseDate" type="date">
+
+  <label>Expense Category</label>
+  <select id="expenseCategory">
+    <option value="">Select Category</option>
+    <option>Body Repair</option>
+    <option>Parking and cleaning charges</option>
+    <option>Marketing</option>
+    <option>Fuel Expense</option>
+    <option>Misclennius Expense</option>
+    <option>Wash Cleaning</option>
+    <option>Mechanical Repair</option>
+    <option>Other</option>
+  </select>
+
+  <label>Detail</label>
+  <input id="expenseDetail" placeholder="e.g., Oil Change / Part Name">
+
+  <label>Amount</label>
+  <input id="expenseAmount" type="number" min="0" step="1" placeholder="Amount">
+
+  <label>Paid By</label>
+  <select id="expensePaidBy">
+    <option value="Owner">Owner</option>
+    <option value="Abdul Raheem">Abdul Raheem</option>
+  </select>
+
+  <label>Description (Optional)</label>
+  <textarea id="expenseDescription" rows="3" placeholder="Any notes..."></textarea>
+
+  <label>Proof Link (Optional)</label>
+  <input id="expenseProof" placeholder="Google Drive link / URL">
+
+  <button class="primary" onclick="submitAddExpense()">Save Expense</button>
+
+  <div id="expMsg" style="margin-top:10px;color:#6b7280;font-weight:800;"></div>
+</div>
+
+<script>
+function n(v){ v = Number(v||0); return isNaN(v) ? 0 : v; }
+
+async function AddExpenseInit(){
+  expenseDate.value = new Date().toISOString().slice(0,10);
+
+  const sel = document.getElementById('expenseCar');
+  const expMsg = document.getElementById('expMsg');
+  sel.innerHTML = '<option value="">Loading cars...</option>';
+  expMsg.innerText = "";
+
+  const res = await window.ALP.api.getCarsForDropdown({ onlyAvailable: true });
+  const cars = res.cars || [];
+  sel.innerHTML = '<option value="">Select Car</option>';
+
+  cars.forEach(c=>{
+    const op = document.createElement('option');
+    op.value = c.CarID;
+    op.textContent = (c.RegistrationNo ? (c.RegistrationNo + " - ") : "") + (c.CarName || c.Model || c.CarID);
+    sel.appendChild(op);
+  });
+  if(!cars.length) sel.innerHTML = '<option value="">No Cars</option>';
+}
+
+async function submitAddExpense(){
+  const expMsg = document.getElementById('expMsg');
+
+  const carId = (expenseCar.value || "").trim();
+  const date  = (expenseDate.value || "").trim();
+  const category = (expenseCategory.value || "").trim();
+  const detail = (expenseDetail.value || "").trim();
+  const amount = n(expenseAmount.value);
+  const paidBy = (expensePaidBy.value || "Owner").trim();
+  const description = (expenseDescription.value || "").trim();
+  const proofLink = (expenseProof.value || "").trim();
+
+  if(!carId){ alert("Please select a car"); return; }
+  if(!date){ alert("Please select expense date"); return; }
+  if(!category){ alert("Please select expense category"); return; }
+  if(amount <= 0){ alert("Amount must be greater than 0"); return; }
+
+  expMsg.innerText = "Saving...";
+
+  const res = await window.ALP.api.addExpense({
+    carId, date, category, detail, amount, paidBy, description, proofLink
+  });
+
+  if(!res || res.status !== "OK"){
+    expMsg.innerText = res?.message || "Expense save failed";
+    return;
+  }
+
+  expMsg.innerText = "Saved ✅ " + (res.ExpenseID ? ("(" + res.ExpenseID + ")") : "");
+
+  expenseCategory.value = "";
+  expenseDetail.value = "";
+  expenseAmount.value = "";
+  expenseDescription.value = "";
+  expenseProof.value = "";
+}
+
+try{ AddExpenseInit(); }catch(e){}
+</script>
