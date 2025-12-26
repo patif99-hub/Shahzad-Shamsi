@@ -1,0 +1,108 @@
+<div>
+  <h2>💳 Record Installment Payment</h2>
+
+  <label>Car</label>
+  <select id="payCar"></select>
+
+  <label>Payment Date</label>
+  <input id="payDate" type="date">
+
+  <label>Amount Received</label>
+  <input id="payAmount" type="number" min="0" step="1" placeholder="Amount">
+
+  <label>Method</label>
+  <select id="payMethod">
+    <option value="">Select</option>
+    <option>Cash</option>
+    <option>Bank</option>
+    <option>Cheque</option>
+    <option>Online</option>
+    <option>Other</option>
+  </select>
+
+  <label>Ref No (Optional)</label>
+  <input id="payRefNo" placeholder="Cheque/Txn Ref#">
+
+  <label>Notes</label>
+  <input id="payNotes" placeholder="Optional">
+
+  <button class="primary" onclick="submitInstallmentPayment()">Save Payment</button>
+
+  <div id="payMsg" style="margin-top:10px;color:#6b7280;font-weight:800;"></div>
+</div>
+
+<script>
+function n(v){ v = Number(v||0); return isNaN(v) ? 0 : v; }
+
+async function InstallmentPaymentInit(){
+  payDate.value = new Date().toISOString().slice(0,10);
+  payCar.innerHTML = `<option value="">Loading...</option>`;
+  payMsg.innerText = "";
+
+  const res = await window.ALP.api.getReceivableCars();
+  const list = (res && res.ok) ? (res.items || []) : [];
+
+  payCar.innerHTML = `<option value="">Select Car</option>`;
+  list.forEach(x=>{
+    const txt =
+      `${x.CarName || x.CarID}` +
+      `${x.RegistrationNo ? (' - ' + x.RegistrationNo) : ''}` +
+      ` | ${x.BuyerName || ''}` +
+      ` | Bal: ${Number(x.Balance || 0).toLocaleString()}`;
+
+    const op = document.createElement('option');
+    op.value = x.CarID;
+    op.textContent = txt;
+    payCar.appendChild(op);
+  });
+
+  if(!list.length){
+    payCar.innerHTML = `<option value="">No Receivables</option>`;
+  }
+}
+
+async function submitInstallmentPayment(){
+  const carId  = (payCar.value || "").trim();
+  const dt     = (payDate.value || "").trim();
+  const amt    = n(payAmount.value);
+  const method = (payMethod.value || "").trim();
+  const refNo  = (payRefNo.value || "").trim();
+  const notes  = (payNotes.value || "").trim();
+
+  if(!carId){ alert("Select car"); return; }
+  if(!dt){ alert("Select date"); return; }
+  if(amt <= 0){ alert("Amount must be > 0"); return; }
+  if(!method){ alert("Select method"); return; }
+
+  payMsg.innerText = "Saving...";
+
+  const res = await window.ALP.api.addInstallmentPayment({
+    CarID: carId,
+    PayDate: dt,
+    Amount: amt,
+    Method: method,
+    RefNo: refNo,
+    Notes: notes
+  });
+
+  if(!res || !res.ok){
+    payMsg.innerText = res?.message || "Save failed";
+    return;
+  }
+
+  const balTxt = (res.balance !== undefined)
+    ? (" | Balance: " + Number(res.balance || 0).toLocaleString())
+    : "";
+
+  payMsg.innerText = "Saved ✅" + balTxt;
+
+  payAmount.value = "";
+  payMethod.value = "";
+  payRefNo.value  = "";
+  payNotes.value  = "";
+
+  await InstallmentPaymentInit();
+}
+
+try { InstallmentPaymentInit(); } catch(e) {}
+</script>
