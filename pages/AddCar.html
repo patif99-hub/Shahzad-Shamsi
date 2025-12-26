@@ -1,0 +1,302 @@
+<div>
+  <h2>➕ Add New Car</h2>
+
+  <label>Car Name</label>
+  <input id="carName" placeholder="e.g. Corolla GLi">
+
+  <div class="form-row">
+    <div>
+      <label>Make</label>
+      <input id="carMake" placeholder="e.g. Toyota">
+    </div>
+    <div>
+      <label>Model</label>
+      <input id="carModel" placeholder="e.g. 2018">
+    </div>
+  </div>
+
+  <div class="form-row">
+    <div>
+      <label>Chassis Number</label>
+      <input id="chassisNo">
+    </div>
+    <div>
+      <label>Engine Number</label>
+      <input id="engineNo">
+    </div>
+  </div>
+
+  <div class="form-row">
+    <div>
+      <label>Registration Number</label>
+      <input id="regNo">
+    </div>
+    <div>
+      <label>Color</label>
+      <input id="carColor">
+    </div>
+  </div>
+
+  <label>Purchase Date</label>
+  <input id="purchaseDate" type="date">
+
+  <div class="form-row">
+    <div>
+      <label>Purchased From (Name)</label>
+      <input id="purchaseFromName">
+    </div>
+    <div>
+      <label>Purchased From (Contact)</label>
+      <input id="purchaseFromContact">
+    </div>
+  </div>
+
+  <label>Purchase Amount</label>
+  <input id="purchaseAmount" type="number" placeholder="e.g. 2500000" oninput="recalcAllShares()">
+
+  <div style="margin-top:10px;padding:12px;border:1px solid #e5e7eb;border-radius:10px;background:#fff;">
+    <div style="font-weight:900;color:#27255f;margin-bottom:8px;">Owner & Partner Share</div>
+
+    <div class="form-row">
+      <div>
+        <label>Owner Share %</label>
+        <input id="ownerPercent" type="number" placeholder="e.g. 70" oninput="calcAmountFromPct('ownerPercent','ownerAmount')">
+      </div>
+      <div>
+        <label>Owner Amount</label>
+        <input id="ownerAmount" type="number" placeholder="auto from %" oninput="calcPctFromAmount('ownerAmount','ownerPercent')">
+      </div>
+    </div>
+
+    <div class="form-row">
+      <div>
+        <label>Abdul Raheem Share %</label>
+        <input id="raheemPercent" type="number" placeholder="e.g. 30" oninput="calcAmountFromPct('raheemPercent','raheemAmount')">
+      </div>
+      <div>
+        <label>Abdul Raheem Amount</label>
+        <input id="raheemAmount" type="number" placeholder="auto from %" oninput="calcPctFromAmount('raheemAmount','raheemPercent')">
+      </div>
+    </div>
+
+    <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:8px;color:#6b7280;font-weight:800;">
+      <div>Total %: <span id="totalPct">0</span>%</div>
+      <div>Total Amount: <span id="totalAmt">0</span></div>
+      <div>Remaining %: <span id="remPct">0</span>%</div>
+      <div>Remaining Amount: <span id="remAmt">0</span></div>
+    </div>
+  </div>
+
+  <div style="margin-top:12px;padding:12px;border:1px solid #e5e7eb;border-radius:10px;background:#fff;">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;">
+      <div style="font-weight:900;color:#27255f;">Additional Investors (Optional)</div>
+      <button onclick="addInvestorRow()" style="width:auto;">+ Add Investor</button>
+    </div>
+
+    <div id="invRows" style="margin-top:10px;display:flex;flex-direction:column;gap:10px;"></div>
+
+    <div style="margin-top:8px;color:#6b7280;font-weight:800;">
+      Note: Total share (Owner + Partner + others) should be ≤ 100%.
+    </div>
+  </div>
+
+  <button class="primary" onclick="submitAddCar()" style="margin-top:12px;">Save Car</button>
+</div>
+
+<script>
+function AddCarInit(){
+  const el = document.getElementById('purchaseDate');
+  if(el) el.value = new Date().toISOString().slice(0,10);
+  document.getElementById('ownerPercent').value = "";
+  document.getElementById('raheemPercent').value = "";
+  recalcAllShares();
+}
+
+function n(v){ v = Number(v); return isNaN(v) ? 0 : v; }
+
+function calcAmountFromPct(pctId, amtId){
+  const purchase = n(document.getElementById('purchaseAmount').value);
+  if(purchase <= 0){ document.getElementById(amtId).value=""; recalcAllShares(); return; }
+  const pct = n(document.getElementById(pctId).value);
+  const amt = Math.round((purchase * pct) / 100);
+  document.getElementById(amtId).value = pct ? amt : "";
+  recalcAllShares();
+}
+
+function calcPctFromAmount(amtId, pctId){
+  const purchase = n(document.getElementById('purchaseAmount').value);
+  if(purchase <= 0){ document.getElementById(pctId).value=""; recalcAllShares(); return; }
+  const amt = n(document.getElementById(amtId).value);
+  const pct = purchase ? ((amt / purchase) * 100) : 0;
+  document.getElementById(pctId).value = amt ? pct.toFixed(2) : "";
+  recalcAllShares();
+}
+
+function recalcAllShares(){
+  const purchase = n(document.getElementById('purchaseAmount').value);
+
+  const ownerPct = n(document.getElementById('ownerPercent').value);
+  const raheemPct = n(document.getElementById('raheemPercent').value);
+
+  const ownerAmt = n(document.getElementById('ownerAmount').value);
+  const raheemAmt = n(document.getElementById('raheemAmount').value);
+
+  let otherPct = 0, otherAmt = 0;
+  document.querySelectorAll('.inv-row').forEach(row=>{
+    otherPct += n(row.querySelector('.invPct').value);
+    otherAmt += n(row.querySelector('.invAmt').value);
+  });
+
+  const totalPct = ownerPct + raheemPct + otherPct;
+  const totalAmt = ownerAmt + raheemAmt + otherAmt;
+
+  document.getElementById('totalPct').innerText = totalPct.toFixed(2);
+  document.getElementById('totalAmt').innerText = totalAmt.toLocaleString();
+
+  const remPct = Math.max(0, 100 - totalPct);
+  const remAmt = Math.max(0, purchase - totalAmt);
+
+  document.getElementById('remPct').innerText = remPct.toFixed(2);
+  document.getElementById('remAmt').innerText = remAmt.toLocaleString();
+}
+
+function addInvestorRow(){
+  const wrap = document.getElementById('invRows');
+  const div = document.createElement('div');
+  div.className = "inv-row";
+  div.innerHTML = `
+    <div class="form-row" style="align-items:end;">
+      <div>
+        <label>Investor Name</label>
+        <input class="invName" placeholder="e.g. Ali">
+      </div>
+      <div>
+        <label>Share %</label>
+        <input class="invPct" type="number" placeholder="e.g. 10"
+               oninput="invCalcAmountFromPct(this)">
+      </div>
+      <div>
+        <label>Amount</label>
+        <input class="invAmt" type="number" placeholder="auto from %"
+               oninput="invCalcPctFromAmount(this)">
+      </div>
+      <div style="flex:0 0 auto;">
+        <button onclick="removeInvestorRow(this)" style="width:auto;background:#991b1b;">Remove</button>
+      </div>
+    </div>
+  `;
+  wrap.appendChild(div);
+  recalcAllShares();
+}
+
+function removeInvestorRow(btn){
+  const row = btn.closest('.inv-row');
+  if(row) row.remove();
+  recalcAllShares();
+}
+
+function invCalcAmountFromPct(input){
+  const purchase = n(document.getElementById('purchaseAmount').value);
+  const row = input.closest('.inv-row');
+  if(!row) return;
+  const pct = n(row.querySelector('.invPct').value);
+  const amt = purchase > 0 ? Math.round((purchase * pct) / 100) : 0;
+  row.querySelector('.invAmt').value = pct ? amt : "";
+  recalcAllShares();
+}
+
+function invCalcPctFromAmount(input){
+  const purchase = n(document.getElementById('purchaseAmount').value);
+  const row = input.closest('.inv-row');
+  if(!row) return;
+  const amt = n(row.querySelector('.invAmt').value);
+  const pct = purchase > 0 ? ((amt / purchase) * 100) : 0;
+  row.querySelector('.invPct').value = amt ? pct.toFixed(2) : "";
+  recalcAllShares();
+}
+
+async function submitAddCar(){
+  const purchaseAmount = n(document.getElementById('purchaseAmount').value);
+  if(purchaseAmount<=0){ alert('Purchase Amount must be > 0'); return; }
+
+  let ownerAmount = n(document.getElementById('ownerAmount').value);
+  let raheemAmount = n(document.getElementById('raheemAmount').value);
+  let ownerPercent = n(document.getElementById('ownerPercent').value);
+  let raheemPercent = n(document.getElementById('raheemPercent').value);
+
+  if(ownerAmount===0 && raheemAmount===0 && ownerPercent===0 && raheemPercent===0){
+    ownerPercent = 100;
+    ownerAmount = purchaseAmount;
+    document.getElementById('ownerPercent').value = "100";
+    document.getElementById('ownerAmount').value = purchaseAmount;
+  }
+
+  const otherInvestors = [];
+  document.querySelectorAll('.inv-row').forEach(row=>{
+    const name = (row.querySelector('.invName').value||"").trim();
+    const pct = n(row.querySelector('.invPct').value);
+    const amt = n(row.querySelector('.invAmt').value);
+    if(!name) return;
+    if(pct<=0 && amt<=0) return;
+    otherInvestors.push({ InvestorName:name, SharePercent:pct, Amount:amt });
+  });
+
+  let otherPct = 0, otherAmt = 0;
+  otherInvestors.forEach(x=>{ otherPct += n(x.SharePercent); otherAmt += n(x.Amount); });
+
+  const totalPct = ownerPercent + raheemPercent + otherPct;
+  const totalAmt = ownerAmount + raheemAmount + otherAmt;
+
+  if(totalPct > 100.0001){
+    alert("Total share % cannot exceed 100%. Current: " + totalPct.toFixed(2) + "%");
+    return;
+  }
+  if(totalAmt > purchaseAmount + 0.0001){
+    alert("Total investment amount cannot exceed Purchase Amount.");
+    return;
+  }
+
+  const carObj={
+    carName:document.getElementById('carName').value,
+    make:document.getElementById('carMake').value,
+    model:document.getElementById('carModel').value,
+    chassisNo:document.getElementById('chassisNo').value,
+    engineNo:document.getElementById('engineNo').value,
+    regNo:document.getElementById('regNo').value,
+    color:document.getElementById('carColor').value,
+    purchaseDate:document.getElementById('purchaseDate').value,
+    purchaseFromName:document.getElementById('purchaseFromName').value,
+    purchaseFromContact:document.getElementById('purchaseFromContact').value,
+    purchaseAmount,
+    ownerAmount,
+    raheemAmount,
+    ownerPercent,
+    raheemPercent,
+    otherInvestors
+  };
+
+  const res = await window.ALP.api.addCar(carObj);
+  alert(res.message || "Saved");
+
+  // reset
+  document.getElementById('carName').value = "";
+  document.getElementById('carMake').value = "";
+  document.getElementById('carModel').value = "";
+  document.getElementById('chassisNo').value = "";
+  document.getElementById('engineNo').value = "";
+  document.getElementById('regNo').value = "";
+  document.getElementById('carColor').value = "";
+  document.getElementById('purchaseFromName').value = "";
+  document.getElementById('purchaseFromContact').value = "";
+  document.getElementById('purchaseAmount').value = "";
+  document.getElementById('ownerPercent').value = "";
+  document.getElementById('raheemPercent').value = "";
+  document.getElementById('ownerAmount').value = "";
+  document.getElementById('raheemAmount').value = "";
+  document.getElementById('invRows').innerHTML = "";
+
+  AddCarInit();
+}
+
+try{ AddCarInit(); }catch(e){}
+</script>
