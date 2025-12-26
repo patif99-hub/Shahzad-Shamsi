@@ -1,0 +1,359 @@
+<div>
+  <h2>📑 Reports</h2>
+
+  <div class="form-row" style="align-items:end;">
+    <div>
+      <label>Car</label>
+      <select id="repCar">
+        <option value="">All Cars</option>
+      </select>
+    </div>
+
+    <div>
+      <label>Start Date</label>
+      <input id="repStart" type="date">
+    </div>
+
+    <div>
+      <label>End Date</label>
+      <input id="repEnd" type="date">
+    </div>
+
+    <div style="display:flex;gap:8px;">
+      <button onclick="loadReports()" style="width:auto;">Run</button>
+      <button onclick="setAllTime()" style="width:auto;background:#111827;">All Time</button>
+    </div>
+  </div>
+
+  <div id="repMsg" style="margin-top:10px;color:#6b7280;font-weight:800;"></div>
+
+  <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:14px;">
+    <div class="stat-card"><h3 id="rTotalCars">0</h3><p>Total Cars</p></div>
+    <div class="stat-card"><h3 id="rSoldCars">0</h3><p>Sold</p></div>
+    <div class="stat-card"><h3 id="rAvailCars">0</h3><p>Available</p></div>
+
+    <div class="stat-card"><h3 id="rTotalExp">0</h3><p>Total Expenses</p></div>
+    <div class="stat-card"><h3 id="rTotalProfit">0</h3><p>Total Profit</p></div>
+
+    <div class="stat-card"><h3 id="rInstReceived">0</h3><p>Installment Received</p></div>
+    <div class="stat-card"><h3 id="rReceivable">0</h3><p>Receivable (Balance)</p></div>
+  </div>
+
+  <div style="margin-top:14px;">
+    <h3 class="rep-h3">Car-wise</h3>
+    <div id="carWiseTable"></div>
+    <div style="color:#6b7280;font-weight:800;margin-top:6px;">Click any car row to open invoice</div>
+  </div>
+
+  <div style="margin-top:14px;">
+    <h3 class="rep-h3">💳 Receivables (Installment)</h3>
+    <div id="repReceivableTable"></div>
+  </div>
+</div>
+
+<!-- INVOICE MODAL -->
+<div id="carModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9999;">
+  <div style="max-width:1000px;margin:40px auto;background:#fff;border-radius:12px;overflow:hidden;
+       max-height:calc(100vh - 80px);display:flex;flex-direction:column;">
+
+    <div style="display:flex;justify-content:space-between;align-items:center;
+                padding:10px 14px;background:#27255f;color:#fff;">
+      <strong id="carModalTitle">Car Invoice</strong>
+      <div style="display:flex;gap:8px;">
+        <button onclick="downloadInvoicePdf()" style="width:auto;background:#0f766e;">Download PDF</button>
+        <button onclick="closeModal()" style="width:auto;background:#111827;">Close</button>
+      </div>
+    </div>
+
+    <div style="padding:12px;overflow:auto;flex:1;">
+      <div id="carDetails" class="inv-grid"></div>
+
+      <h3 class="inv-h3">Invoice Summary</h3>
+      <div class="inv-stats">
+        <div class="stat-card"><h3 id="invPurchase">0</h3><p>Purchase</p></div>
+        <div class="stat-card"><h3 id="invExpenses">0</h3><p>Expenses</p></div>
+        <div class="stat-card"><h3 id="invNetCost">0</h3><p>Net Cost</p></div>
+        <div class="stat-card"><h3 id="invSale">0</h3><p>Sale Price</p></div>
+        <div class="stat-card"><h3 id="invProfit">0</h3><p>Profit / Loss</p></div>
+        <div class="stat-card"><h3 id="invReceived">0</h3><p>Received</p></div>
+        <div class="stat-card"><h3 id="invBalance">0</h3><p>Balance</p></div>
+      </div>
+
+      <div class="inv-two-col">
+        <div>
+          <h3 class="inv-h3">Expenses</h3>
+          <div id="invoiceExpenseTable"></div>
+        </div>
+        <div>
+          <h3 class="inv-h3">Investors</h3>
+          <div id="invoiceInvestorTable"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- LEDGER MODAL -->
+<div id="ledgerModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:99999;">
+  <div style="max-width:1000px;margin:40px auto;background:#fff;border-radius:12px;overflow:hidden;
+       max-height:calc(100vh - 80px);display:flex;flex-direction:column;">
+
+    <div style="display:flex;justify-content:space-between;align-items:center;
+                padding:10px 14px;background:#0f766e;color:#fff;">
+      <strong id="ledgerTitle">Customer Ledger</strong>
+      <button onclick="closeLedger()" style="width:auto;background:#111827;">Close</button>
+    </div>
+
+    <div style="padding:12px;overflow:auto;flex:1;">
+      <div id="ledgerTop" class="inv-grid"></div>
+      <h3 class="inv-h3">Payments Ledger</h3>
+      <div id="ledgerTable"></div>
+    </div>
+  </div>
+</div>
+
+<style>
+.rep-h3{color:#27255f;margin:0 0 6px 0;}
+.stat-card{background:#fff;padding:10px;border-radius:8px;box-shadow:0 2px 10px rgba(0,0,0,.08);flex:1 1 135px;text-align:center;}
+.stat-card h3{margin:0;font-size:16px;color:#27255f;}
+.stat-card p{margin:2px 0 0;color:#666;font-weight:800;font-size:12px;}
+table{width:100%;border-collapse:collapse;font-size:12px;background:#fff;line-height:1.15;}
+th,td{border:1px solid #eee;padding:6px 7px;vertical-align:top;}
+th{background:#f8fafc;font-weight:900;padding:7px 7px;}
+.inv-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px 12px;font-size:12px;}
+.inv-h3{margin:10px 0 6px;color:#27255f;font-size:14px;}
+.inv-stats{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:8px;}
+.inv-two-col{display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:start;}
+@media (max-width: 900px){ .inv-grid{grid-template-columns:1fr;} .inv-two-col{grid-template-columns:1fr;} }
+</style>
+
+<script>
+let CURRENT_INVOICE_CAR_ID = "";
+
+async function ReportsInit(){
+  const list = await window.ALP.api.getCarList();
+  repCar.innerHTML = `<option value="">All Cars</option>`;
+  (list||[]).forEach(c=>{
+    repCar.innerHTML += `<option value="${escapeHtml(c.CarID)}">${escapeHtml(c.CarName)} - ${escapeHtml(c.RegistrationNo||"")}</option>`;
+  });
+  loadReports();
+}
+try { ReportsInit(); } catch(e){}
+
+function setAllTime(){
+  repStart.value=""; repEnd.value="";
+  loadReports();
+}
+
+async function loadReports(){
+  const carId = repCar.value;
+  repMsg.innerText = "Loading...";
+
+  const res = await window.ALP.api.getReportsData({
+    startDate: repStart.value,
+    endDate: repEnd.value,
+    carId
+  });
+
+  if(!res || !res.ok){
+    repMsg.innerText = res?.message || "Report error";
+    return;
+  }
+  repMsg.innerText = "";
+
+  const s=res.summary||{};
+  rTotalCars.innerText=s.totalCars||0;
+  rSoldCars.innerText=s.soldCars||0;
+  rAvailCars.innerText=s.availableCars||0;
+
+  rTotalExp.innerText=Number(s.totalExpenses||0).toLocaleString();
+  rTotalProfit.innerText=Number(s.totalProfit||0).toLocaleString();
+
+  rInstReceived.innerText = Number(s.totalInstallmentReceived||0).toLocaleString();
+  rReceivable.innerText   = Number(s.totalReceivable||0).toLocaleString();
+
+  carWiseTable.innerHTML = makeCarTable(res.carWise||[]);
+  repReceivableTable.innerHTML = makeReceivable(res.receivables||[]);
+}
+
+function makeCarTable(rows){
+  if(!rows.length) return "No data";
+  return `<table><thead><tr>
+    <th>Car</th><th>Purchase</th><th>Expenses</th><th>Sale</th><th>Profit/Loss</th>
+  </tr></thead><tbody>`+
+  rows.map(r=>`
+    <tr onclick="openInvoice('${escapeJs(r.CarID)}')" style="cursor:pointer;">
+      <td>${escapeHtml(r.CarName||"")}</td>
+      <td>${Number(r.PurchaseAmount||0).toLocaleString()}</td>
+      <td>${Number(r.TotalExpenses||0).toLocaleString()}</td>
+      <td>${Number(r.SalePrice||0).toLocaleString()}</td>
+      <td>${Number(r.NetProfit||0).toLocaleString()}</td>
+    </tr>`).join("")+
+  `</tbody></table>`;
+}
+
+function makeReceivable(rows){
+  if(!rows || !rows.length) return `<div style="color:#6b7280;font-weight:800;">No receivables ✅</div>`;
+  return `<table><thead><tr>
+      <th>Car</th><th>Reg#</th><th>Buyer</th>
+      <th style="text-align:right;">Sale</th>
+      <th style="text-align:right;">Received</th>
+      <th style="text-align:right;">Balance</th>
+    </tr></thead><tbody>`+
+    rows.map(r=>`
+      <tr onclick="openCustomerLedger('${escapeJs(r.CarID)}')" style="cursor:pointer;">
+        <td>${escapeHtml(r.CarName||r.CarID||"")}</td>
+        <td>${escapeHtml(r.RegistrationNo||"")}</td>
+        <td>${escapeHtml(r.BuyerName||"")}</td>
+        <td style="text-align:right;">${Number(r.SalePrice||0).toLocaleString()}</td>
+        <td style="text-align:right;">${Number(r.Received||0).toLocaleString()}</td>
+        <td style="text-align:right;font-weight:900;">${Number(r.Balance||0).toLocaleString()}</td>
+      </tr>
+    `).join("")+
+  `</tbody></table>
+  <div style="color:#6b7280;font-weight:800;margin-top:6px;">Click a row to open Customer Ledger</div>`;
+}
+
+async function openInvoice(carId){
+  CURRENT_INVOICE_CAR_ID = carId;
+  carModal.style.display="block";
+  document.body.style.overflow="hidden";
+
+  const res = await window.ALP.api.getCarInvoiceData({
+    carId,
+    startDate: repStart.value,
+    endDate: repEnd.value
+  });
+
+  if(!res || !res.ok){
+    carDetails.innerHTML = `<div style="color:#b91c1c;font-weight:900;">${escapeHtml(res?.message||"Invoice error")}</div>`;
+    return;
+  }
+
+  const c=res.car || {};
+  const sale=res.sale || {};
+  carModalTitle.innerText = (c.CarName||"Car")+" Invoice";
+
+  carDetails.innerHTML=[
+    ["Car",c.CarName],["Model",c.Model],["Color",c.Color],
+    ["Reg#",c.RegistrationNo],["Chassis",c.ChassisNo],["Engine",c.EngineNo],
+    ["Purchase Date",c.PurchaseDate],["Purchased From",c.PurchasedFrom],
+    ["Status",c.Status],["Sale Date",sale.SaleDate||""],
+    ["Buyer",sale.BuyerName||""],["Payment",sale.PaymentMethod||""],
+    ["Sale Type", sale.SaleType||""]
+  ].map(x=>`<div><b>${escapeHtml(x[0])}</b>: ${escapeHtml(x[1]||"")}</div>`).join("");
+
+  invPurchase.innerText=Number(res.totals.purchaseAmount||0).toLocaleString();
+  invExpenses.innerText=Number(res.totals.totalExpenses||0).toLocaleString();
+  invNetCost.innerText=Number(res.totals.netCost||0).toLocaleString();
+
+  invSale.innerText=Number(res.totals.salePrice||0).toLocaleString();
+  invProfit.innerText=Number(res.totals.netProfit||0).toLocaleString();
+
+  invReceived.innerText = Number(res.totals.received||0).toLocaleString();
+  invBalance.innerText  = Number(res.totals.balance||0).toLocaleString();
+
+  invoiceExpenseTable.innerHTML=makeSimple(res.expenses,
+    ["ExpenseDate","ExpenseCategory","ExpenseName","PaidBy","Amount"]);
+  invoiceInvestorTable.innerHTML=makeSimple(res.investors,
+    ["InvestorName","SharePercent","Amount"]);
+}
+
+function makeSimple(rows,cols){
+  if(!rows||!rows.length) return "No data";
+  return `<table><thead><tr>`+
+    cols.map(c=>`<th>${escapeHtml(c)}</th>`).join("")+
+  `</tr></thead><tbody>`+
+    rows.map(r=>`<tr>`+
+      cols.map(c=>{
+        const v=r[c];
+        return `<td>${typeof v==="number" ? Number(v).toLocaleString() : escapeHtml(v||"")}</td>`;
+      }).join("")+
+    `</tr>`).join("")+
+  `</tbody></table>`;
+}
+
+function downloadInvoicePdf(){
+  alert("GitHub Pages version: PDF generation not available (Apps Script feature).");
+}
+
+function closeModal(){
+  carModal.style.display="none";
+  document.body.style.overflow="auto";
+}
+
+async function openCustomerLedger(carId){
+  ledgerModal.style.display="block";
+  document.body.style.overflow="hidden";
+  ledgerTitle.innerText = "Customer Ledger";
+  ledgerTop.innerHTML = `<div style="color:#6b7280;font-weight:800;">Loading...</div>`;
+  ledgerTable.innerHTML = "";
+
+  const res = await window.ALP.api.getCustomerLedger({ carId });
+  if(!res || !res.ok){
+    ledgerTop.innerHTML = `<div style="color:#b91c1c;font-weight:900;">${escapeHtml(res?.message||"Ledger error")}</div>`;
+    return;
+  }
+
+  const c = res.car || {};
+  const s = res.sale || {};
+  const t = res.totals || {};
+  const pays = res.payments || [];
+
+  ledgerTitle.innerText = (c.CarName||"Car") + " — Customer Ledger";
+
+  ledgerTop.innerHTML = [
+    ["Car", c.CarName], ["Model", c.Model], ["Color", c.Color],
+    ["Reg#", c.RegistrationNo], ["Chassis", c.ChassisNo], ["Engine", c.EngineNo],
+    ["Sale Date", s.SaleDate], ["Buyer", s.BuyerName], ["Contact", s.BuyerContact],
+    ["Installment Start", s.InstallmentStartDate || ""],
+    ["Notes", s.Notes || ""],
+    ["Sale Price", Number(t.salePrice||0).toLocaleString()],
+    ["Down Payment", Number(t.downPayment||0).toLocaleString()],
+    ["Paid Total", Number(t.paymentsTotal||0).toLocaleString()],
+    ["Received", Number(t.received||0).toLocaleString()],
+    ["Balance", Number(t.balance||0).toLocaleString()]
+  ].map(x=>`<div><b>${escapeHtml(x[0])}</b>: ${escapeHtml(x[1]||"")}</div>`).join("");
+
+  ledgerTable.innerHTML = makeLedgerTable(pays);
+}
+
+function makeLedgerTable(pays){
+  if(!pays.length) return `<div style="color:#6b7280;font-weight:800;">No payments found</div>`;
+  let running = 0;
+  return `<table><thead><tr>
+    <th>Date</th><th>Method</th><th>Ref</th><th>Notes</th>
+    <th style="text-align:right;">Amount</th>
+    <th style="text-align:right;">Running Total</th>
+  </tr></thead><tbody>` +
+  pays.map(r=>{
+    running += Number(r.Amount||0);
+    return `<tr>
+      <td>${escapeHtml(r.PayDate||"")}</td>
+      <td>${escapeHtml(r.Method||"")}</td>
+      <td>${escapeHtml(r.RefNo||"")}</td>
+      <td>${escapeHtml(r.Notes||"")}</td>
+      <td style="text-align:right;">${Number(r.Amount||0).toLocaleString()}</td>
+      <td style="text-align:right;font-weight:900;">${Number(running||0).toLocaleString()}</td>
+    </tr>`;
+  }).join("") +
+  `</tbody></table>`;
+}
+
+function closeLedger(){
+  ledgerModal.style.display="none";
+  document.body.style.overflow="auto";
+}
+
+function escapeHtml(str){
+  return String(str||'')
+    .replaceAll('&','&amp;')
+    .replaceAll('<','&lt;')
+    .replaceAll('>','&gt;')
+    .replaceAll('"','&quot;')
+    .replaceAll("'","&#039;");
+}
+function escapeJs(str){
+  return String(str||"").replace(/\\/g,"\\\\").replace(/'/g,"\\'").replace(/"/g,'\\"');
+}
+</script>
